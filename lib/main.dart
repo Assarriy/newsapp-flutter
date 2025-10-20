@@ -7,10 +7,7 @@ import 'package:news_app/utils/app_colors.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Load environment variables
   await dotenv.load(fileName: '.env');
-
   runApp(const MyApp());
 }
 
@@ -21,26 +18,49 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return GetMaterialApp(
       title: 'News App',
+      debugShowCheckedModeBanner: false,
+      
+      // PERBAIKAN: Menggunakan ThemeData untuk tema gelap yang konsisten
       theme: ThemeData(
-        primarySwatch: Colors.blue,
-        primaryColor: AppColors.primary,
+        brightness: Brightness.dark,
         scaffoldBackgroundColor: AppColors.background,
-        appBarTheme: const AppBarTheme(
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
+        primaryColor: AppColors.accent, // Warna utama adalah merah tua
+        
+        // Skema warna untuk konsistensi di seluruh widget Flutter
+        colorScheme: ColorScheme.dark(
+          primary: AppColors.accent,
+          secondary: AppColors.accent,
+          background: AppColors.background,
+        ),
+        
+        // Tema AppBar default
+        appBarTheme: AppBarTheme(
+          backgroundColor: AppColors.background, // Cocok dengan background layar
+          foregroundColor: AppColors.primaryText, // Warna ikon dan judul
           elevation: 0,
         ),
+        
+        // Tema Tombol default
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
+            backgroundColor: AppColors.accent, // Tombol menggunakan warna aksen
+            foregroundColor: AppColors.primaryText, // Teks di tombol berwarna putih
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         ),
+
+        // Tema Teks default
+        textTheme: TextTheme(
+          bodyLarge: TextStyle(color: AppColors.primaryText),
+          bodyMedium: TextStyle(color: AppColors.secondaryText),
+        ),
       ),
+      
       initialRoute: AppPages.INITIAL,
       getPages: AppPages.routes,
       initialBinding: AppBindings(),
-      debugShowCheckedModeBanner: false,
     );
   }
 }

@@ -1,23 +1,20 @@
+// lib/utils/app_colors.dart
+
 import 'package:flutter/material.dart';
 
 class AppColors {
-  static const Color primary = Color(0xFF2196F3);
-  static const Color secondary = Color(0xFF03DAC6);
-  static const Color background = Color(0xFFF5F5F5);
-  static const Color surface = Colors.white;
-  static const Color error = Color(0xFFB00020);
-  static const Color onPrimary = Colors.white;
-  static const Color onSecondary = Colors.black;
-  static const Color onBackground = Color(0xFF121212);
-  static const Color onSurface = Color(0xFF121212);
-  static const Color onError = Colors.white;
+  // Tema Warna Utama (Dark Mode)
+  static const Color background = Color(0xFF121212);    // Hitam pekat (Off-black)
+  static const Color accent = Color(0xFFB71C1C);        // Merah Tua
+  
+  // Warna Teks
+  static const Color primaryText = Colors.white;
+  static const Color secondaryText = Colors.white70;   // Putih redup untuk sub-info
 
-  // Text colors
-  static const Color textPrimary = Color(0xFF212121);
-  static const Color textSecondary = Color(0xFF757575);
-  static const Color textHint = Color(0xFFBDBDBD);
-
-  // Additional colors
-  static const Color divider = Color(0xFFE0E0E0);
-  static const Color cardShadow = Color(0x1A000000);
+  // Warna Komponen UI
+  static const Color cardBackground = Color(0xFF2C2C2C); // Abu-abu gelap untuk kartu & chip
+  
+  // Warna untuk Shimmer Effect
+  static const Color shimmerBase = Color(0xFF2C2C2C);
+  static const Color shimmerHighlight = Color(0xFF3A3A3A);
 }
