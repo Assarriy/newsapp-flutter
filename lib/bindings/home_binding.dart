@@ -2,7 +2,6 @@
 
 import 'package:get/get.dart';
 import 'package:news_app/controllers/news_controller.dart';
-import 'package:news_app/services/news_service.dart';
 
 class HomeBinding extends Bindings {
   @override

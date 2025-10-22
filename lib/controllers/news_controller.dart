@@ -8,6 +8,10 @@ class NewsController extends GetxController {
   final NewsService _newsService;
   NewsController(this._newsService);
 
+  // Variable untuk related news
+  final _relatedArticles = <NewsArticle>[].obs;
+  List<NewsArticle> get relatedArticles => _relatedArticles;
+
   // Variabel untuk berita utama dan kategori
   final _isLoading = true.obs;
   final _articles = <NewsArticle>[].obs;
@@ -109,6 +113,25 @@ class NewsController extends GetxController {
       _searchResults.clear();
     } finally {
       _isSearchLoading.value = false;
+    }
+  }
+
+  Future<void> fetchRelatedNews(String category, String currentArticleTitle) async {
+    // Kosongkan daftar lama sebelum mengambil yang baru
+    _relatedArticles.clear(); 
+    try {
+      final response = await _newsService.getTopHeadlines(
+        category: category,
+        pageSize: 6, // Ambil lebih banyak untuk filtering
+      );
+      // Filter untuk menghapus artikel yang sedang dibaca dan yang tidak punya gambar
+      _relatedArticles.value = response.articles
+          .where((article) =>
+              article.title != currentArticleTitle && article.urlToImage != null)
+          .take(4) // Ambil 4 berita terkait
+          .toList();
+    } catch (e) {
+      print('Gagal mengambil berita terkait: $e');
     }
   }
 

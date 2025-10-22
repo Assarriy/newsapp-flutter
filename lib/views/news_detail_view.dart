@@ -1,16 +1,34 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:news_app/controllers/news_controller.dart';
+import 'package:news_app/models/news_article.dart';
+import 'package:news_app/routes/app_pages.dart';
+import 'package:news_app/utils/app_colors.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:url_launcher/url_launcher.dart';
-import 'package:news_app/models/news_article.dart';
-// Pastikan path ini benar dan AppColors sudah didefinisikan
-import 'package:news_app/utils/app_colors.dart'; 
 
-class NewsDetailView extends StatelessWidget {
+class NewsDetailView extends StatefulWidget {
+  const NewsDetailView({super.key});
+
+  @override
+  State<NewsDetailView> createState() => _NewsDetailViewState();
+}
+
+class _NewsDetailViewState extends State<NewsDetailView> {
   final NewsArticle article = Get.arguments as NewsArticle;
+  final NewsController controller = Get.find();
+
+  @override
+  void initState() {
+    super.initState();
+    // Panggil fungsi untuk mengambil berita terkait saat halaman dibuka
+    if (article.source?.name != null) {
+      controller.fetchRelatedNews(
+          article.source!.name!.toLowerCase().split(' ').first, article.title!);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -18,248 +36,237 @@ class NewsDetailView extends StatelessWidget {
       backgroundColor: AppColors.background,
       body: CustomScrollView(
         slivers: [
-          // AppBar yang dinamis dengan gambar
           _buildSliverAppBar(),
-
-          // Konten berita
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Meta data: Sumber dan tanggal
-                  _buildArticleMeta(),
-                  const SizedBox(height: 16),
-
-                  // Judul Berita
-                  Text(
-                    article.title ?? 'No Title',
-                    style: TextStyle(
-                      color: AppColors.primaryText,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      height: 1.3, // Jarak antar baris
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Deskripsi
-                  if (article.description != null && article.description!.isNotEmpty) ...[
-                    Text(
-                      article.description!,
-                      style: TextStyle(
-                        color: AppColors.secondaryText,
-                        fontSize: 16,
-                        height: 1.6,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-
-                  // Konten utama
-                  if (article.content != null && article.content!.isNotEmpty) ...[
-                     Text(
-                      // Menghapus bagian aneh seperti "[+1234 chars]" dari content
-                      article.content!.split(' [+').first,
-                      style: TextStyle(
-                        color: AppColors.primaryText,
-                        fontSize: 17,
-                        height: 1.7,
-                        wordSpacing: 1.2,
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                  ],
-                  
-                  // Tombol "Baca Selengkapnya"
-                  if (article.url != null) _buildReadMoreButton(),
-                ],
-              ),
-            ),
-          ),
+          _buildArticleContent(),
+          _buildRelatedNewsSection(),
         ],
       ),
+      // Tombol Aksi Mengambang (Floating Action Button)
+      floatingActionButton: _buildFloatingActionButtons(),
     );
   }
 
-  Widget _buildSliverAppBar() {
+  // WIDGET UNTUK APPBAR DENGAN EFEK PARALLAX
+  SliverAppBar _buildSliverAppBar() {
     return SliverAppBar(
       expandedHeight: 350,
       pinned: true,
       stretch: true,
       backgroundColor: AppColors.background,
-      foregroundColor: Colors.white, // Warna untuk back button dan icons
+      foregroundColor: Colors.white,
       flexibleSpace: FlexibleSpaceBar(
         stretchModes: const [StretchMode.zoomBackground],
         background: Stack(
           fit: StackFit.expand,
           children: [
-            // Gambar Berita
+            // Gambar dengan efek parallax
             if (article.urlToImage != null)
               CachedNetworkImage(
                 imageUrl: article.urlToImage!,
                 fit: BoxFit.cover,
-                placeholder: (context, url) => Container(color: Colors.grey.shade800),
-                errorWidget: (context, url, error) => _buildImagePlaceholder(),
               )
             else
-              _buildImagePlaceholder(),
-            
-            // Gradient overlay untuk membuat teks lebih mudah dibaca
-            DecoratedBox(
+              Container(color: AppColors.cardBackground),
+
+            // Gradient overlay agar judul terbaca jelas
+            const DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.bottomCenter,
                   end: Alignment.center,
-                  colors: [
-                    Colors.black.withOpacity(0.8),
-                    Colors.black.withOpacity(0.0),
-                  ],
+                  colors: [Colors.black, Colors.transparent],
                 ),
+              ),
+            ),
+
+            // Judul di atas gambar
+            Positioned(
+              bottom: 60,
+              left: 16,
+              right: 16,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: AppColors.accent,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      article.source?.name ?? 'News',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    article.title ?? 'No Title',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      shadows: [
+                        Shadow(blurRadius: 10.0, color: Colors.black54)
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
         ),
-        title: Text(
-          article.source?.name ?? '',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-        titlePadding: const EdgeInsets.only(left: 48, right: 48, bottom: 16),
       ),
-      actions: [
-        // Tombol Share dan Menu dengan background agar terlihat jelas
-        Container(
-          margin: const EdgeInsets.only(right: 12.0),
-          decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.3),
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.share_rounded),
-                onPressed: _shareArticle,
-                tooltip: 'Share',
+    );
+  }
+
+  // WIDGET UNTUK KONTEN UTAMA ARTIKEL
+  SliverToBoxAdapter _buildArticleContent() {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Info Author dan Tanggal
+            Row(
+              children: [
+                const Icon(Icons.person_outline,
+                    color: AppColors.secondaryText, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    article.source?.name ?? 'Unknown Author',
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        color: AppColors.secondaryText, fontSize: 14),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                const Icon(Icons.access_time_outlined,
+                    color: AppColors.secondaryText, size: 18),
+                const SizedBox(width: 8),
+                if (article.publishedAt != null)
+                  Text(
+                    timeago.format(DateTime.parse(article.publishedAt!)),
+                    style: const TextStyle(
+                        color: AppColors.secondaryText, fontSize: 14),
+                  ),
+              ],
+            ),
+            const Divider(height: 40, color: AppColors.cardBackground),
+
+            // Deskripsi dan Konten
+            Text(
+              (article.content ?? article.description ?? 'No content available.')
+                  .split(' [+')
+                  .first,
+              style: const TextStyle(
+                color: AppColors.primaryText,
+                fontSize: 17,
+                height: 1.7,
               ),
-              _buildPopupMenu(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // WIDGET UNTUK BAGIAN BERITA TERKAIT (RELATED NEWS)
+  SliverToBoxAdapter _buildRelatedNewsSection() {
+    return SliverToBoxAdapter(
+      child: Obx(() {
+        if (controller.relatedArticles.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Related News',
+                style: TextStyle(
+                  color: AppColors.primaryText,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 20),
+              ...controller.relatedArticles.map((relatedArticle) {
+                return GestureDetector(
+                  onTap: () {
+                    Get.offNamed(Routes.NEWS_DETAIL, arguments: relatedArticle);
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    child: Row(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: CachedNetworkImage(
+                            imageUrl: relatedArticle.urlToImage!,
+                            width: 100,
+                            height: 80,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Text(
+                            relatedArticle.title!,
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: AppColors.primaryText,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
             ],
           ),
-        ),
-      ],
-    );
-  }
-  
-  Widget _buildImagePlaceholder() {
-    return Container(
-      color: Colors.grey.shade800,
-      child: Icon(Icons.image_not_supported_rounded, size: 60, color: Colors.grey.shade600),
+        );
+      }),
     );
   }
 
-  Widget _buildArticleMeta() {
+  // WIDGET UNTUK FLOATING ACTION BUTTON
+  Widget _buildFloatingActionButtons() {
     return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        if (article.source?.name != null) ...[
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: AppColors.accent, // Menggunakan warna aksen merah
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              article.source!.name!,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-        ],
-        if (article.publishedAt != null)
-          Text(
-            timeago.format(DateTime.parse(article.publishedAt!)),
-            style: TextStyle(color: AppColors.secondaryText, fontSize: 13),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildReadMoreButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        icon: const Icon(Icons.open_in_new_rounded, color: Colors.white, size: 20),
-        label: Text(
-          'Read Full Article',
-          style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
+        FloatingActionButton.small(
+          onPressed: _shareArticle,
+          heroTag: 'share_fab',
+          backgroundColor: AppColors.cardBackground,
+          child: const Icon(Icons.share_rounded, color: AppColors.primaryText),
         ),
-        onPressed: _openInBrowser,
-        style: ElevatedButton.styleFrom(
+        const SizedBox(width: 10),
+        FloatingActionButton(
+          onPressed: _openInBrowser,
+          heroTag: 'browser_fab',
           backgroundColor: AppColors.accent,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPopupMenu() {
-    return PopupMenuButton<String>(
-      icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
-      color: Color(0xFF2C2C2C), // Warna background menu
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      onSelected: (value) {
-        if (value == 'copy_link') _copyLink();
-        if (value == 'open_browser') _openInBrowser();
-      },
-      itemBuilder: (context) => [
-        PopupMenuItem(
-          value: 'copy_link',
-          child: Row(children: const [
-            Icon(Icons.link_rounded, color: Colors.white70),
-            SizedBox(width: 10),
-            Text('Copy Link', style: TextStyle(color: Colors.white)),
-          ]),
-        ),
-        PopupMenuItem(
-          value: 'open_browser',
-          child: Row(children: const [
-            Icon(Icons.open_in_browser_rounded, color: Colors.white70),
-            SizedBox(width: 10),
-            Text('Open in Browser', style: TextStyle(color: Colors.white)),
-          ]),
+          child:
+              const Icon(Icons.open_in_browser_rounded, color: Colors.white),
         ),
       ],
     );
   }
 
   // --- Helper Functions ---
-  
   void _shareArticle() {
     if (article.url != null) {
       Share.share(
-        '${article.title ?? 'Check out this news'}\n\n${article.url!}',
-        subject: article.title,
-      );
-    }
-  }
-
-  void _copyLink() {
-    if (article.url != null) {
-      Clipboard.setData(ClipboardData(text: article.url!));
-      Get.snackbar(
-        'Success',
-        'Link copied to clipboard!',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Color(0xFF2C2C2C),
-        colorText: Colors.white,
-        margin: const EdgeInsets.all(12),
-        borderRadius: 12,
-      );
+          'Check out this news: ${article.title ?? ""}\n\n${article.url!}');
     }
   }
 
@@ -268,13 +275,6 @@ class NewsDetailView extends StatelessWidget {
       final uri = Uri.parse(article.url!);
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
-        Get.snackbar(
-          'Error', 'Could not open the link',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: AppColors.accent,
-          colorText: Colors.white,
-        );
       }
     }
   }
