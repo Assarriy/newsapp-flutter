@@ -38,57 +38,51 @@ class HomeView extends GetView<NewsController> {
         ],
       ),
       body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: controller.refreshNews,
-          backgroundColor: AppColors.accent,
-          color: Colors.white,
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ## Bagian Judul Kategori ##
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-                  child: Text(
-                    'Categories',
-                    style: TextStyle(
-                      color: AppColors.primaryText,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+        // PERBAIKAN: Menggunakan Column untuk struktur layout yang benar
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ## Bagian Judul Kategori ##
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Text(
+                'Categories',
+                style: TextStyle(
+                  color: AppColors.primaryText,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
                 ),
-
-                // ## Daftar Kategori ##
-                _buildCategorySection(),
-
-                // ## Bagian Judul Hot News ##
-      
-
-                // ## Bagian Judul Latest News ##
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(16, 24, 16, 8),
-                  child: Text(
-                    'Latest News',
-                    style: TextStyle(
-                      color: AppColors.primaryText,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-
-                // ## Daftar Latest News ##
-                _buildLatestNewsSection(),
-              ],
+              ),
             ),
-          ),
+
+            // ## Daftar Kategori ##
+            _buildCategorySection(),
+
+            // ## Bagian Judul Latest News ##
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 24, 16, 8),
+              child: Text(
+                'Latest News',
+                style: TextStyle(
+                  color: AppColors.primaryText,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+
+            // ## Daftar Latest News ##
+            // PERBAIKAN: Menggunakan Expanded agar ListView bisa scroll
+            Expanded(
+              child: _buildLatestNewsSection(),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  // Widget untuk daftar kategori
+  // Widget untuk daftar kategori (horizontal)
   Widget _buildCategorySection() {
     return SizedBox(
       height: 50,
@@ -110,14 +104,11 @@ class HomeView extends GetView<NewsController> {
     );
   }
 
-  // Widget untuk daftar Latest News
+  // Widget untuk daftar Latest News (vertical dengan pagination)
   Widget _buildLatestNewsSection() {
     return Obx(() {
       if (controller.isLoading && controller.articles.isEmpty) {
-        return Padding(
-          padding: const EdgeInsets.only(top: 8.0),
-          child: LoadingShimmer(),
-        );
+        return LoadingShimmer();
       }
       if (controller.error.isNotEmpty) {
         return _buildErrorWidget();
@@ -125,19 +116,58 @@ class HomeView extends GetView<NewsController> {
       if (controller.articles.isEmpty) {
         return _buildEmptyWidget();
       }
-      return ListView.separated(
-        physics: const NeverScrollableScrollPhysics(),
-        shrinkWrap: true,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        itemCount: controller.articles.length,
-        separatorBuilder: (context, index) => const SizedBox(height: 16),
-        itemBuilder: (context, index) {
-          final article = controller.articles[index];
-          return NewsCard(
-            article: article,
-            onTap: () => Get.toNamed(Routes.NEWS_DETAIL, arguments: article),
-          );
-        },
+      
+      // PERBAIKAN: Menggunakan ListView.builder untuk pagination
+      return RefreshIndicator(
+        onRefresh: controller.refreshNews,
+        backgroundColor: AppColors.accent,
+        color: Colors.white,
+        child: ListView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          
+          // Tambah 1 untuk tombol, hanya jika bisa memuat lebih banyak
+          itemCount: controller.articles.length + (controller.canLoadMore ? 1 : 0),
+          
+          itemBuilder: (context, index) {
+            
+            // --- Logika untuk Tombol "Load More" ---
+            if (index == controller.articles.length) {
+              return Obx(() {
+                if (controller.isLoadMoreLoading) {
+                  // Tampilkan spinner saat sedang loading
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24.0),
+                      child: CircularProgressIndicator(color: AppColors.accent),
+                    ),
+                  );
+                }
+                // Tampilkan tombol "Load More"
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 16.0, bottom: 24.0),
+                    child: ElevatedButton(
+                      onPressed: controller.loadMoreArticles,
+                      child: const Text('Load More'),
+                    ),
+                  ),
+                );
+              });
+            }
+            // --- Akhir Logika Tombol ---
+
+            // Tampilkan NewsCard seperti biasa
+            final article = controller.articles[index];
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: NewsCard(
+                article: article,
+                onTap: () =>
+                    Get.toNamed(Routes.NEWS_DETAIL, arguments: article),
+              ),
+            );
+          },
+        ),
       );
     });
   }
